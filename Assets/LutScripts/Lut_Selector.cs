@@ -9,17 +9,19 @@ public class Lut_Selector : MonoBehaviour
     //this is a 1 based indexer - make it simpler to understand when used in the editor
     //just need to decrement it everywhere
     [SerializeField]
-    private int _selected = 1;
+    private int _EditorSelected = 1;
 
     [SerializeField]
     public List<Texture2D> _LutTextures = new List<Texture2D>();
 
-    public int _SelectedLut
+
+    private int _selected = 0;
+    public int _Selected
     {
         get { return _selected; }
         set
         {
-            if(value - 1 >= _LutTextures.Count || value < 1)
+            if(value >= _LutTextures.Count || value < 0)
             {
                 _selected = 1;
                 Debug.LogError("index out of bound for LUT textures array");
@@ -31,9 +33,9 @@ public class Lut_Selector : MonoBehaviour
 
     void ApplyTexture()
     {
-        if (prefabMat != null && _LutTextures.Count > 0 && _selected > 0)
+        if (prefabMat != null && _LutTextures.Count > 0 && _selected < _LutTextures.Count) 
         {
-            prefabMat.SetTexture("_LutTexture", _LutTextures[_selected - 1]);
+            prefabMat.SetTexture("_LutTexture", _LutTextures[_selected]);
         }
     }
 
@@ -41,8 +43,8 @@ public class Lut_Selector : MonoBehaviour
     {
         if(prefabMat == null)
         {
-            MeshRenderer renderer = this.GetComponent<MeshRenderer>();
-			prefabMat = renderer.material;
+            MeshRenderer mr = this.GetComponent<MeshRenderer>();
+			prefabMat = mr.material;
 
 		}
     }
@@ -62,6 +64,7 @@ public class Lut_Selector : MonoBehaviour
     void OnValidate()
     {
         SetMaterial();
+        _selected = _EditorSelected - 1;
         ApplyTexture();
     }
 }
