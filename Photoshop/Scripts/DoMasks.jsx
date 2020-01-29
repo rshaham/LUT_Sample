@@ -104,6 +104,8 @@ app.displayDialogs = myDialogMode;
 ///////////////////////////////////////////////////////////////////////////////
 function main(){
 	
+	//start by applying all masks 
+	//this code is reporuposed from Adobe samples
 	var outFolder = Folder.selectDialog("Select folder to output file");
 	var success = false;
 	// Do some voodoo on the layer selection incase no layer is selected or multiple layers are selected
@@ -142,42 +144,61 @@ function main(){
 		}
 	}
 
+	//end adobe sample repurposed code
+	//start our own code 
+
 	try{ 
 
 		data = GetDataFromDocument(doc);
 
+		//merge all the layer groups to layers
 		mergeGroups();
 		
+		//already stored = but save to local var
 		var startDoc = doc;
+		//create new document to copy our shit into
 		var newDoc = app.documents.add(app.activeDocument.width, app.activeDocument.height, 72, data.fileName + ".tga", NewDocumentMode.RGB);
+		
+		//go back to original document
 		app.activeDocument = startDoc;
 
+		//get all the layers created in the last step
 		var layer = doc.layers["Mask"];
-		//alert(layer.name);
+		
 		var subLayers = layer.layers;
 		
-		var len = subLayers.length;
-		
+		//channels names and layers name must match
 		var channelsStr = ['Red', 'Green', 'Blue'];
 		var channelRef = [newDoc.channels.getByName(channelsStr[0]),newDoc.channels.getByName(channelsStr[1]),newDoc.channels.getByName(channelsStr[2])];
 		
+		//go over each layer with the correct name and copy the data to the correct channel in the new document
 		for( var i=0; i < 3; i++ ) {
 			var l = subLayers[channelsStr[i]];
 			
+			//set our layer active
+			//select all and copy
 			app.activeDocument.activeLayer = l;
 			app.activeDocument.selection.selectAll();
 			app.activeDocument.selection.copy();
 			
-		//l.copy();
+			//switch to new document
+			//select channel
+			//set it to be the only one active
+			//paste
 			app.activeDocument = newDoc;
 			app.activeDocument.selection.load(channelRef[i], SelectionType.REPLACE);
 			app.activeDocument.activeChannels = [channelRef[i]];
 			app.activeDocument.paste();
 		
-			//newDoc.paste();
+			//restore states
+			app.activeDocument.activeChannels = channelRef;
 			app.activeDocument = startDoc;
 		}
 
+		//internal try - doing diffuse if it is there
+		///try and copy the diffuse on top to the new file
+		//will silent fail if there is no diffuse channel
+		//that is the intended behavior
 		try {
 			app.activeDocument = startDoc;
 			var l = subLayers["Diffuse"];
@@ -194,11 +215,13 @@ function main(){
 			//alert(e);
 		}
 		
+		//save the file we create 
 		app.activeDocument = newDoc;
 		var fileName = outFolder + "/" + data.fileName + ".tga";
 		//alert("saving to " + fileName);
 		saveTarga24(fileName);
 
+		//close the document - forcing no dialog
 		newDoc.close(SaveOptions.DONOTSAVECHANGES);
 		
 		success = true;
@@ -212,13 +235,22 @@ function main(){
 		alert ("Lut creation failed");
 
 	}
+
+	//restore active document to the original
 	app.activeDocument = doc;
+	//restore history to before we messed with it
 	doc.activeHistoryState = currentHistory;
-	//doc.activeHistoryState//doc.setSelectedLayer("Green");
+	
 	//app.purge (PurgeTarget.HISTORYCACHES);
 }
 
 
+///////////////////////////////////////////////////////////////////////////////
+// Function: saveTarga24
+// Usage: save active document as a targa with no alpha
+// Input: file name
+// Return: data structure with document info 
+///////////////////////////////////////////////////////////////////////////////
 function saveTarga24(saveFile){
 
 	targaSaveOptions = new TargaSaveOptions();
@@ -226,11 +258,16 @@ function saveTarga24(saveFile){
 	targaSaveOptions.resolution = TargaBitsPerPixels.TWENTYFOUR;
 	activeDocument.saveAs(File(saveFile), targaSaveOptions, true, Extension.LOWERCASE);
 	
-};
+}
 
+///////////////////////////////////////////////////////////////////////////////
+// Function: mergeGroups
+// Usage: iterate over layers that are under a group called MASK and merge them
+// Input: none
+// Return: data structure with document info 
+///////////////////////////////////////////////////////////////////////////////
 function mergeGroups () {
 	var layer = doc.layers["Mask"];
-
 	//alert(layer.name);
 	var subLayers = layer.layers;
 	var len = subLayers.length;
@@ -245,12 +282,24 @@ function mergeGroups () {
 	}
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// Function: merge
+// Usage: merge selected layers
+// Input: must have layers selected
+// Return: data structure with document info 
+///////////////////////////////////////////////////////////////////////////////
 function merge(){
 	var idMrgtwo = charIDToTypeID( "Mrg2" );
 	var desc15 = new ActionDescriptor();
 	executeAction( idMrgtwo, desc15, DialogModes.NO );
 }
 
+///////////////////////////////////////////////////////////////////////////////
+// Function: GetDataFromDocument
+// Usage: get document info 
+// Input: document
+// Return: data structure with document info 
+///////////////////////////////////////////////////////////////////////////////
 function GetDataFromDocument( inDocument ) {
 	var data = new Object();
 	if ( inDocument.fullName.cloudDocument ) {
