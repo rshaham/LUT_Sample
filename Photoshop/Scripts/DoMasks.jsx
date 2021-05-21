@@ -1,5 +1,4 @@
-﻿// c2008 Adobe Systems, Inc. All rights reserved.
-// Written by Jeffrey Tranberry
+
 
 /*
 @@@BUILDINFO@@@ Create Lut.jsx 1.0.0.3
@@ -209,6 +208,11 @@ function main(){
 			app.activeDocument = newDoc;
 			app.activeDocument.activeChannels = channelRef;
 			app.activeDocument.paste();
+			selectColorRange(
+				RGBc(0.0, 0.0, 0.0),
+				RGBc(0.0, 0.0, 0.0)
+			);
+			app.activeDocument.selection.cut();
 		} catch(e) {
 			//this is realy only needed for debugging
 			// as it is valid to not have a diffuse 
@@ -241,9 +245,27 @@ function main(){
 	//restore history to before we messed with it
 	doc.activeHistoryState = currentHistory;
 	
-	//app.purge (PurgeTarget.HISTORYCACHES);
+	app.purge (PurgeTarget.HISTORYCACHES);
 }
 
+function cTID(s) { return app.charIDToTypeID(s); }
+function sTID(s) { return app.stringIDToTypeID(s); }
+
+function RGBc(r, g, b) {
+    var color = new ActionDescriptor();
+        color.putDouble( cTID("Rd  "), r);
+        color.putDouble( cTID("Grn "), g);
+        color.putDouble( cTID("Bl  "), b);   
+    return color;
+}
+
+function selectColorRange(color1, color2){
+    var desc = new ActionDescriptor(); 
+    desc.putInteger(cTID("Fzns"), 0 ); 
+    desc.putObject( cTID("Mnm "), cTID("RGBC"), color1 ); 
+    desc.putObject( cTID("Mxm "), cTID("RGBC"), color2 ); 
+    executeAction( cTID("ClrR"), desc, DialogModes.NO );
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Function: saveTarga24
